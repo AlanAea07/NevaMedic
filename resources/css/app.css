@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+[x-cloak] { display: none !important; }
+
+@layer components {
+    .page-shell { @apply mx-auto w-full max-w-7xl px-5 sm:px-8; }
+    .section-title { @apply font-display text-4xl leading-tight md:text-6xl; }
+    .eyebrow { @apply mb-4 text-xs font-bold uppercase tracking-widest text-neva-blue; }
+    .btn-primary { @apply inline-flex min-h-12 items-center justify-center rounded bg-neva-blue px-6 py-3 text-center text-sm font-semibold text-white transition hover:bg-neva-navy focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-neva-blue; }
+    .btn-secondary { @apply inline-flex min-h-12 items-center justify-center rounded border border-neva-line bg-white px-6 py-3 text-center text-sm font-semibold text-neva-ink hover:bg-neva-mist focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-neva-blue; }
+    .btn-light { @apply inline-flex min-h-12 items-center justify-center rounded border border-neva-silver px-6 py-3 text-center text-sm font-semibold text-white hover:bg-neva-navy focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white; }
+    .form-input { @apply mt-2 block w-full rounded border-neva-line bg-white text-neva-ink focus:border-neva-blue focus:ring-neva-blue; }
+    .panel { @apply rounded border border-neva-line bg-white p-5 md:p-6; }
+}
