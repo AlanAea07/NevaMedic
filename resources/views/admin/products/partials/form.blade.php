@@ -1,6 +1,7 @@
 @php
-    $currentImage = $product->images->first();
-    $imageState = ['source' => old('image_source', 'keep'), 'url' => old('image_url', $currentImage?->external_url), 'existing' => $currentImage?->url];
+    $currentImage = $product->images->whereNull('product_variant_id')->first();
+    $imageSource = old('image_source', $currentImage ? 'keep' : 'file');
+    $imageState = ['source' => $imageSource, 'url' => old('image_url', $currentImage?->external_url), 'existing' => $currentImage?->url];
     $colorRows = old('variants', $product->variants->map(fn ($variant) => ['id' => $variant->id, 'color' => $variant->color, 'color_hex' => $variant->color_hex ?: '#1765d8', 'image_source' => 'keep'])->all());
     $imageState['variants'] = collect(is_array($colorRows) ? $colorRows : [])->filter(fn ($row) => is_array($row))->map(function ($row) use ($product) {
         $image = !empty($row['id']) ? $product->images->firstWhere('product_variant_id', $row['id']) : null;
@@ -13,7 +14,7 @@
 <div class="panel space-y-5 xl:col-span-2">
 <h2 class="text-xl font-semibold">Información general</h2>
 <x-ui.category-search name="product_type" :options="config('neva.product_types')" :value="old('product_type', $product->product_type)" />
-@foreach(['name' => ['Nombre', 150], 'sku' => ['SKU (opcional)', 50], 'short_description' => ['Descripción corta', 280], 'material' => ['Material (opcional)', 150]] as $field => [$label, $length])
+@foreach(['name' => ['Nombre', 150], 'short_description' => ['Descripción corta', 280], 'material' => ['Material (opcional)', 150]] as $field => [$label, $length])
 <label class="block">{{ $label }}<input class="form-input" name="{{ $field }}" value="{{ old($field, $product->$field) }}" maxlength="{{ $length }}" @required(in_array($field, ['name', 'slug', 'short_description']))></label>
 @endforeach
 <label class="block" for="product-slug">Nombre para el enlace del producto
@@ -22,16 +23,16 @@
 <p id="product-slug-help" class="text-sm text-neva-muted">Ejemplo: <strong>filipina-azul</strong>. Escribe un nombre corto, sin espacios ni acentos y separado con guiones. No pongas https:// ni .com.</p>
 @error('slug')<p class="text-sm text-red-700">{{ $message }}</p>@enderror
 <label class="block">Descripción<textarea class="form-input" name="description" rows="5" maxlength="10000">{{ old('description', $product->description) }}</textarea></label>
-<label class="block">Cuidados<textarea class="form-input" name="care_instructions" rows="3" maxlength="2000">{{ old('care_instructions', $product->care_instructions) }}</textarea></label>
+<label class="block">Cuidados (opcional)<textarea class="form-input" name="care_instructions" rows="3" maxlength="2000" placeholder="Puedes dejar este campo vacío.">{{ old('care_instructions', $product->care_instructions) }}</textarea></label>
+@include('admin.products.partials.sizes')
 <fieldset class="space-y-4 border-t border-neva-line pt-5">
-    <legend class="text-xl font-semibold">Imagen principal</legend>
-    <label class="block">Origen de la imagen
-        <select class="form-input" name="image_source" x-model="source">
-            <option value="keep" @selected(old('image_source', 'keep') === 'keep')>{{ $currentImage ? 'Conservar imagen actual' : 'Sin imagen por ahora' }}</option>
-            <option value="file" @selected(old('image_source') === 'file')>Subir archivo WebP</option>
-            <option value="url" @selected(old('image_source') === 'url')>Usar enlace externo</option>
-        </select>
-    </label>
+    <legend class="text-xl font-semibold">Foto principal del producto</legend>
+    <p class="text-sm text-neva-muted">Esta foto se mostrará en el listado. Elige cómo agregarla:</p>
+    <div class="flex flex-wrap gap-3">
+        <label class="flex cursor-pointer items-center gap-2 rounded border border-neva-line p-3" :class="{ 'border-neva-blue bg-neva-mist': source === 'file' }"><input type="radio" name="image_source" value="file" x-model="source" @checked($imageSource === 'file')>Subir desde mi equipo</label>
+        <label class="flex cursor-pointer items-center gap-2 rounded border border-neva-line p-3" :class="{ 'border-neva-blue bg-neva-mist': source === 'url' }"><input type="radio" name="image_source" value="url" x-model="source" @checked($imageSource === 'url')>Pegar un enlace</label>
+        <label class="flex cursor-pointer items-center gap-2 rounded border border-neva-line p-3"><input type="radio" name="image_source" value="keep" x-model="source" @checked($imageSource === 'keep')>{{ $currentImage ? 'Conservar foto actual' : 'Agregar después' }}</label>
+    </div>
     <div x-cloak x-show="source === 'file'" class="space-y-2">
         <label class="block">Archivo WebP<input type="file" name="image_file" accept=".webp,image/webp" class="form-input" :disabled="source !== 'file'" :required="source === 'file'" @change="selectFile($event)"></label>
         <p class="text-sm text-neva-muted">Solo WebP, máximo 2 MB. Si el formulario muestra errores, vuelve a seleccionar el archivo.</p>
@@ -52,7 +53,12 @@
 <fieldset><legend class="font-semibold">Sectores</legend><div class="mt-3 space-y-3">
 @forelse($sectors as $sector)
 <label class="flex items-center gap-3"><input type="checkbox" name="sectors[]" value="{{ $sector->id }}" data-label="{{ $sector->name }}" data-active="{{ $sector->is_active ? '1' : '0' }}" @checked(in_array($sector->id, old('sectors', $product->sectors->modelKeys())))>{{ $sector->name }} {{ $sector->is_active ? '' : '(inactivo)' }}</label>
-@empty<p class="text-neva-muted">Primero crea un sector.</p><a href="{{ route('admin.sectors.create') }}" class="text-neva-blue">Crear sector</a>@endforelse
+@empty
+<p class="text-neva-muted">Pide al administrador que cree un sector.</p>
+@if(auth()->user()->isAdministrator())
+<a href="{{ route('admin.sectors.create') }}" class="text-neva-blue">Crear sector</a>
+@endif
+@endforelse
 </div></fieldset>
 @foreach(['is_available' => 'Disponible · mostrar en el catálogo', 'is_featured' => 'Destacado en inicio'] as $field => $label)
 <input type="hidden" name="{{ $field }}" value="0"><label class="flex items-center gap-3"><input type="checkbox" name="{{ $field }}" value="1" @checked(old($field, $product->$field))>{{ $label }}</label>

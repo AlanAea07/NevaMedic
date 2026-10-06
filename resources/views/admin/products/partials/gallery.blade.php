@@ -1,5 +1,5 @@
-<section class="space-y-4 border-t border-neva-line pt-5">
-    <h2 class="text-xl font-semibold">Más fotografías del producto</h2>
+<details class="space-y-4 border-t border-neva-line pt-5" @if($errors->has('gallery_files.*') || $errors->has('gallery_urls.*')) open @endif>
+    <summary class="cursor-pointer text-xl font-semibold">Más fotografías del producto (opcional)</summary>
     <p class="text-sm text-neva-muted">Agrega diferentes vistas de la prenda. Las fotografías de cada color se agregan más abajo.</p>
     <div class="grid grid-cols-2 gap-4 sm:grid-cols-3">
         @foreach($product->images->whereNull('product_variant_id')->where('is_primary', false) as $image)
@@ -12,4 +12,4 @@
     <div class="grid grid-cols-3 gap-2"><template x-for="url in galleryPreviews" :key="url"><img :src="url" class="h-28 w-full rounded object-cover" alt="Nueva fotografía de la galería"></template></div>
     <template x-for="(link, index) in galleryLinks" :key="index"><label class="block">Enlace de fotografía adicional<input type="url" :name="`gallery_urls[${index}]`" x-model="galleryLinks[index]" class="form-input" placeholder="https://ejemplo.com/prenda.webp"><span class="text-xs text-neva-muted">Deja vacío para omitir este enlace.</span></label></template>
     <button type="button" class="btn-secondary" @click="galleryLinks.push('')" :disabled="galleryLinks.length >= 8">Añadir enlace a la galería</button>
-</section>
+</details>

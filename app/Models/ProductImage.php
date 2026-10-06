@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Facades\Storage;
 
 class ProductImage extends Model
 {
@@ -12,7 +11,7 @@ class ProductImage extends Model
 
     public function getUrlAttribute(): string
     {
-        return $this->external_url ?: Storage::disk('public')->url($this->path);
+        return $this->external_url ?: asset('storage/'.ltrim($this->path, '/'));
     }
 
     protected function casts(): array

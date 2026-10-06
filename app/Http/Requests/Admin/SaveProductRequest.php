@@ -2,21 +2,26 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Support\ExternalImageUrl;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
-use App\Support\ExternalImageUrl;
 
 class SaveProductRequest extends FormRequest
 {
     protected function prepareForValidation(): void
     {
+        if ($this->boolean('sizes_present')) {
+            $this->merge(['available_sizes' => $this->input('available_sizes', [])]);
+        }
         $this->merge(['image_url' => ExternalImageUrl::normalize($this->input('image_url'))]);
         $variants = $this->input('variants');
         if (is_array($variants)) {
             foreach ($variants as &$variant) {
                 if (is_array($variant)) {
                     $variant['image_url'] = ExternalImageUrl::normalize($variant['image_url'] ?? null);
-                    if (is_string($variant['color'] ?? null)) $variant['color'] = trim($variant['color']);
+                    if (is_string($variant['color'] ?? null)) {
+                        $variant['color'] = trim($variant['color']);
+                    }
                 }
             }
             unset($variant);
@@ -30,6 +35,8 @@ class SaveProductRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'available_sizes.*.in' => 'Selecciona una talla de la lista disponible.',
+            'available_sizes.*.distinct' => 'No repitas una talla.',
             'variants.required_if' => 'Agrega al menos un color con su fotografía.',
             'variants.*.color.required' => 'Escribe el nombre del color.',
             'variants.*.color.distinct' => 'No repitas el mismo color en este producto.',
@@ -55,13 +62,16 @@ class SaveProductRequest extends FormRequest
 
     public function authorize(): bool
     {
-        return (bool) ($this->user()?->is_admin && $this->user()?->is_active);
+        return (bool) $this->user()?->canManageProducts();
     }
 
     public function rules(): array
     {
         $productId = $this->route('product')?->id ?? 0;
+
         return [
+            'available_sizes' => ['sometimes', 'array', 'max:'.count(config('neva.sizes'))],
+            'available_sizes.*' => ['required', 'string', 'distinct', Rule::in(config('neva.sizes'))],
             'has_variants' => ['sometimes', 'boolean'],
             'variants' => ['exclude_unless:has_variants,1', 'required_if:has_variants,1', 'array', 'min:1', 'max:20'],
             'variants.*.id' => ['nullable', 'integer', 'distinct', Rule::exists('product_variants', 'id')->where('product_id', $productId)],
@@ -75,14 +85,13 @@ class SaveProductRequest extends FormRequest
             'gallery_urls' => ['nullable', 'array', 'max:8'],
             'gallery_urls.*' => ['nullable', 'string', 'url:https', 'max:2048'],
             'remove_images' => ['nullable', 'array'],
-            'remove_images.*' => ['integer', 'distinct', Rule::exists('product_images', 'id')->where('product_id', $productId)->where('is_primary', false)->whereNull('product_variant_id')],
+            'remove_images.*' => ['integer', 'distinct', Rule::exists('product_images', 'id')->where('product_id', $productId)->where('is_primary', 0)->whereNull('product_variant_id')],
             'image_source' => ['nullable', Rule::in(['keep', 'file', 'url'])],
             'image_file' => ['exclude_unless:image_source,file', 'required_if:image_source,file', 'file', 'image', 'mimetypes:image/webp', 'extensions:webp', 'max:2048'],
             'image_url' => ['exclude_unless:image_source,url', 'required_if:image_source,url', 'string', 'url:https', 'max:2048'],
             'name' => ['required', 'string', 'max:150'],
             'product_type' => ['nullable', Rule::in(array_keys(config('neva.product_types')))],
             'slug' => ['required', 'string', 'max:180', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/', Rule::unique('products')->ignore($this->route('product'))],
-            'sku' => ['nullable', 'string', 'max:50', Rule::unique('products')->ignore($this->route('product'))],
             'short_description' => ['required', 'string', 'max:280'],
             'description' => ['nullable', 'string', 'max:10000'],
             'material' => ['nullable', 'string', 'max:150'],
@@ -98,7 +107,9 @@ class SaveProductRequest extends FormRequest
     public function after(): array
     {
         return [function ($validator) {
-            if ($validator->errors()->isNotEmpty() || ! $this->boolean('has_variants')) return;
+            if ($validator->errors()->isNotEmpty() || ! $this->boolean('has_variants')) {
+                return;
+            }
             foreach ($this->input('variants', []) as $index => $variant) {
                 if ($variant['image_source'] === 'keep' && ! $this->route('product')?->images()->where('product_variant_id', $variant['id'] ?? 0)->exists()) {
                     $validator->errors()->add("variants.$index.image_source", 'Cada color necesita su fotografía: sube un WebP o pega un enlace.');

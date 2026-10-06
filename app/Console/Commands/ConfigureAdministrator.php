@@ -10,18 +10,13 @@ class ConfigureAdministrator extends Command
 {
     protected $signature = 'neva:admin {email : Correo de la cuenta administrativa}';
 
-    protected $description = 'Crear o habilitar explícitamente la única cuenta administrativa';
+    protected $description = 'Crear o habilitar una cuenta administrativa';
 
     public function handle(): int
     {
         $email = mb_strtolower(trim($this->argument('email')));
         if (Validator::make(['email' => $email], ['email' => 'required|email|max:255'])->fails()) {
             $this->error('El correo no es válido.');
-
-            return self::FAILURE;
-        }
-        if (User::where('is_admin', true)->where('is_active', true)->where('email', '!=', $email)->exists()) {
-            $this->error('Ya existe otro administrador activo. Esta etapa admite una sola cuenta.');
 
             return self::FAILURE;
         }
@@ -37,7 +32,7 @@ class ConfigureAdministrator extends Command
             }
             $user = new User(compact('name', 'email', 'password'));
         }
-        $user->forceFill(['is_admin' => true, 'is_active' => true])->save();
+        $user->forceFill(['role' => 'admin', 'is_admin' => true, 'is_active' => true])->save();
         $this->info('Cuenta administrativa habilitada. Las contraseñas existentes no se modifican.');
 
         return self::SUCCESS;

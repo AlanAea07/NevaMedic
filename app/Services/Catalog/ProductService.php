@@ -21,7 +21,9 @@ class ProductService
         $oldPaths = [];
         try {
             DB::transaction(function () use ($product, $data, $actor, &$newPaths, &$oldPaths) {
-                if ($product->exists) Product::whereKey($product->id)->lockForUpdate()->firstOrFail();
+                if ($product->exists) {
+                    Product::whereKey($product->id)->lockForUpdate()->firstOrFail();
+                }
                 $action = $product->exists ? 'updated' : 'created';
                 $product->fill(Arr::except($data, ['sectors', 'image_source', 'image_file', 'image_url', 'variants', 'gallery_files', 'gallery_urls', 'remove_images']))->save();
                 $product->sectors()->sync($data['sectors']);
@@ -60,12 +62,17 @@ class ProductService
                 ActivityLog::create(['user_id' => $actor->id, 'action' => $action, 'entity_type' => 'product', 'entity_id' => $product->id]);
             });
         } catch (Throwable $exception) {
-            foreach ($newPaths as $path) Storage::disk('public')->delete($path);
+            foreach ($newPaths as $path) {
+                Storage::disk('public')->delete($path);
+            }
             throw $exception;
         }
         foreach (array_unique($oldPaths) as $path) {
-            if ($path && str_starts_with($path, 'products/') && ! ProductImage::where('path', $path)->exists()) Storage::disk('public')->delete($path);
+            if ($path && str_starts_with($path, 'products/') && ! ProductImage::where('path', $path)->exists()) {
+                Storage::disk('public')->delete($path);
+            }
         }
+
         return $product;
     }
 
@@ -74,13 +81,20 @@ class ProductService
         $path = '';
         if ($data['image_source'] === 'file') {
             $path = $data['image_file']->store('products', 'public');
-            if (! $path) throw ValidationException::withMessages(['image_file' => 'No se pudo guardar la imagen. Intenta nuevamente.']);
+            if (! $path) {
+                throw ValidationException::withMessages(['image_file' => 'No se pudo guardar la imagen. Intenta nuevamente.']);
+            }
             $newPaths[] = $path;
         }
-        if ($image) $oldPaths[] = $image->path;
+        if ($image) {
+            $oldPaths[] = $image->path;
+        }
         $attributes = ['path' => $path, 'external_url' => $path ? null : $data['image_url'], 'alt' => $product->name, 'is_primary' => $primary, 'product_variant_id' => $variantId, 'sort_order' => $primary ? 0 : 1];
-        if ($image) $image->update($attributes);
-        else $product->images()->create($attributes);
+        if ($image) {
+            $image->update($attributes);
+        } else {
+            $product->images()->create($attributes);
+        }
     }
 
     public function delete(Product $product, User $actor): void

@@ -1,7 +1,7 @@
 @props(['product'])
 <article class="overflow-hidden rounded border border-neva-line bg-white">
     <a href="{{ route('products.show', $product->slug) }}" class="block">
-        @if($image = $product->images->first())
+        @if($image = $product->cover_image)
             <div x-data="{ failed: false }"><img x-show="!failed" x-on:error="failed = true" class="h-72 w-full object-cover" src="{{ $image->url }}" alt="{{ $image->alt }}" loading="lazy" referrerpolicy="no-referrer"><div x-cloak x-show="failed" class="flex h-72 items-center justify-center bg-neva-mist text-neva-muted">Imagen no disponible</div></div>
         @else
             <div class="flex h-72 items-center justify-center bg-neva-mist text-neva-muted">Fotografía pendiente</div>

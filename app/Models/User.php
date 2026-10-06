@@ -18,6 +18,16 @@ class User extends Authenticatable
         'is_active' => true,
     ];
 
+    public function isAdministrator(): bool
+    {
+        return $this->role === 'admin' || ($this->role === null && $this->is_admin);
+    }
+
+    public function canManageProducts(): bool
+    {
+        return $this->is_active && ($this->isAdministrator() || $this->role === 'publisher');
+    }
+
     /**
      * The attributes that are mass assignable.
      *

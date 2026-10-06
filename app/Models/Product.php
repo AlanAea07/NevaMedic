@@ -12,16 +12,21 @@ class Product extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['sku', 'name', 'slug', 'product_type', 'short_description', 'description', 'material', 'care_instructions', 'reference_price', 'currency', 'is_available', 'is_featured', 'is_published', 'has_variants'];
+    protected $fillable = ['name', 'slug', 'product_type', 'short_description', 'description', 'material', 'care_instructions', 'reference_price', 'currency', 'is_available', 'is_featured', 'is_published', 'has_variants', 'available_sizes'];
 
     protected function casts(): array
     {
-        return ['reference_price' => 'decimal:2', 'is_available' => 'boolean', 'is_featured' => 'boolean', 'is_published' => 'boolean', 'has_variants' => 'boolean'];
+        return ['reference_price' => 'decimal:2', 'is_available' => 'boolean', 'is_featured' => 'boolean', 'is_published' => 'boolean', 'has_variants' => 'boolean', 'available_sizes' => 'array'];
     }
 
     public function scopePublished(Builder $query): Builder
     {
         return $query->where('is_available', true);
+    }
+
+    public function getCoverImageAttribute(): ?ProductImage
+    {
+        return $this->images->firstWhere('product_variant_id', null) ?? ($this->has_variants ? $this->images->first() : null);
     }
 
     public function sectors(): BelongsToMany

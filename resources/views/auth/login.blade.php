@@ -10,6 +10,6 @@
         <button class="btn-primary w-full">Iniciar sesión</button>
         <a class="block text-sm text-neva-blue" href="{{ route('password.request') }}">Olvidé mi contraseña</a>
         <a class="btn-secondary w-full" href="{{ route('home') }}">Volver al sitio</a>
-        <p class="text-sm text-neva-muted">Acceso exclusivo para el administrador.</p>
+        <p class="text-sm text-neva-muted">Acceso para administradores y publicadores de productos.</p>
     </form>
 </x-guest-layout>

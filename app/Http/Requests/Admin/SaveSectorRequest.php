@@ -9,7 +9,7 @@ class SaveSectorRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return (bool) ($this->user()?->is_admin && $this->user()?->is_active);
+        return (bool) ($this->user()?->isAdministrator() && $this->user()?->is_active);
     }
 
     public function rules(): array

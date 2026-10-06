@@ -6,6 +6,7 @@ return [
     'location' => 'Torreón, Coahuila, México',
     // Número internacional: solo dígitos. Vacío hasta que el cliente lo confirme.
     'whatsapp' => env('NEVA_WHATSAPP'),
+    'sizes' => ['XS', 'S', 'M', 'G', 'L', 'XL', 'XXL', 'XXXL', 'Única'],
     'product_types' => [
         'filipinas' => 'Filipinas',
         'batas-clinicas' => 'Batas clínicas',
