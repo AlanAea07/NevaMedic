@@ -1,5 +1,6 @@
-export default (images) => ({
+export default (images, options = {}) => ({
     images,
+    size: null,
     color: null,
     selected: images[0]?.id ?? null,
     failed: false,
@@ -12,6 +13,15 @@ export default (images) => ({
     },
     get current() {
         return this.images.find(image => image.id === this.selected);
+    },
+    get colorName() {
+        return options.colors?.find(color => color.id === this.color)?.name ?? '';
+    },
+    get quoteUrl() {
+        const url = new URL(options.quoteUrl, window.location.origin);
+        if (this.size) url.searchParams.set('size', this.size);
+        if (this.colorName) url.searchParams.set('color', this.colorName);
+        return url.href;
     },
     selectColor(id) {
         this.color = id;

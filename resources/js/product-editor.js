@@ -1,7 +1,7 @@
 export function externalImageUrl(value) {
     try {
         const url = new URL(value);
-        if (url.protocol !== 'https:') return '';
+        if (!['http:', 'https:'].includes(url.protocol)) return '';
         if (url.hostname === 'drive.google.com') {
             const id = url.pathname.match(/\/file\/d\/([a-zA-Z0-9_-]+)/)?.[1] || url.searchParams.get('id');
             if (id && /^[a-zA-Z0-9_-]+$/.test(id)) {
@@ -51,8 +51,8 @@ export default (initial) => ({
         this.variants.splice(index, 1);
     },
     fileError(file) {
-        if (!/\.webp$/i.test(file.name) || file.type !== 'image/webp') return 'Solo se permiten archivos WebP.';
-        return file.size > 2 * 1024 * 1024 ? 'La imagen no debe superar 2 MB.' : '';
+        if (!/\.(jpe?g|png|webp)$/i.test(file.name) || !['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) return 'Solo se permiten archivos JPG, PNG o WebP.';
+        return file.size > 10 * 1024 * 1024 ? 'La imagen no debe superar 10 MB.' : '';
     },
     selectVariantFile(row, event) {
         if (row.fileUrl) URL.revokeObjectURL(row.fileUrl);
@@ -99,10 +99,10 @@ export default (initial) => ({
         this.error = '';
         const file = event.target.files[0];
         if (file) {
-            if (!/\.webp$/i.test(file.name) || file.type !== 'image/webp') {
-                this.error = 'Solo se permiten archivos WebP.';
-            } else if (file.size > 2 * 1024 * 1024) {
-                this.error = 'La imagen no debe superar 2 MB.';
+            if (!/\.(jpe?g|png|webp)$/i.test(file.name) || !['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+                this.error = 'Solo se permiten archivos JPG, PNG o WebP.';
+            } else if (file.size > 10 * 1024 * 1024) {
+                this.error = 'La imagen no debe superar 10 MB.';
             } else {
                 this.fileUrl = URL.createObjectURL(file);
             }

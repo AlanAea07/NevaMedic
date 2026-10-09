@@ -74,10 +74,11 @@ Las métricas tienen una fila única por producto y fecha, sin identificar visit
 - CRUD de productos con archivado, sectores múltiples y vista previa privada.
 - Creación y edición de sectores; desactivar conserva sus relaciones.
 - Bitácora transaccional de modificaciones de productos.
-- Imagen principal desde archivo WebP (máximo 2 MB) o enlace HTTPS externo.
-  Los archivos se guardan en storage/app/public/products; product_images guarda
-  la ruta o external_url. Los enlaces de Drive se adaptan para previsualización
-  y requieren acceso público. El servidor no descarga las imágenes externas.
+- Imagen principal, galería y colores desde JPG, PNG o WebP (máximo 10 MB)
+  o enlace HTTP/HTTPS público. ImageProcessor descarga con protección SSRF,
+  reduce a 1000 px de ancho sin ampliar y escribe WebP/JPEG con calidad 80.
+  product_images.path guarda la ruta base sin extensión; external_url solo
+  conserva fuentes heredadas pendientes de conversión. Drive requiere acceso público.
   El formulario muestra una tarjeta en vivo y permite conservar o reemplazar
   la imagen; el reemplazo elimina el archivo anterior después de guardar.
 - Listado de métricas existentes, sin generar cifras de muestra.
@@ -93,7 +94,7 @@ Las métricas tienen una fila única por producto y fecha, sin identificar visit
   care_instructions, reference_price, is_available, is_featured, has_variants, available_sizes.
   SKU se eliminó mediante migración. currency se fija en MXN.
 - Sectores: IDs relacionados en product_sector, no texto duplicado en products.
-- Fotos: product_images.path o external_url, is_primary para portada y
+- Fotos: product_images.path sin extensión, is_primary para portada y
   product_variant_id para la imagen vinculada al color. Nunca se guardan binarios.
 - Colores: product_variants.color y color_hex. size y design son columnas
   heredadas sin uso en el formulario de variantes; se guardan vacías.
@@ -107,7 +108,9 @@ Las métricas tienen una fila única por producto y fecha, sin identificar visit
 ## Extensiones pendientes
 
 La ordenación manual de la galería sigue pendiente.
-La página de catálogos todavía no genera PDF ni ofrece descargas simuladas.
+Los catálogos se generan con Dompdf por sector y leen JPEG locales previamente
+procesados. No descargan ni convierten fotos al generar el PDF. Los fallos se
+registran y muestran un placeholder. Ver docs/image-processing.md.
 La captura de vistas y clics sigue pendiente; debe ser agregada, atómica y con
 limitación de abuso. El aviso de privacidad requiere contenido final del cliente.
 La bitácora actual cubre productos y activación de cuentas; ampliar a sectores y accesos cuando se

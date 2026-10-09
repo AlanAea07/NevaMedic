@@ -4,9 +4,10 @@ namespace Database\Seeders;
 
 use App\Models\Product;
 use App\Models\Sector;
+use App\Services\ImageProcessor;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\File\File;
 
 class DemoProductSeeder extends Seeder
 {
@@ -29,26 +30,32 @@ class DemoProductSeeder extends Seeder
             if (Product::withTrashed()->where('slug', 'demo-'.$slug)->exists()) {
                 continue;
             }
-            DB::transaction(function () use ($slug, $name, $type, $sector, $price, $colors) {
-                $product = Product::create(['slug' => 'demo-'.$slug, 'name' => $name.' · Demo', 'product_type' => $type, 'short_description' => 'Producto de demostración con dos colores. Imagen y precio de ejemplo.', 'description' => 'Muestra para probar el catálogo y la selección de colores; no representa existencias ni especificaciones finales del cliente.', 'reference_price' => $price, 'currency' => 'MXN', 'is_available' => true, 'is_published' => true, 'is_featured' => in_array($slug, ['filipina-esencial', 'conjunto-quirurgico', 'camisa-industrial']), 'has_variants' => true]);
-                $product->sectors()->sync([Sector::where('slug', $sector)->firstOrFail()->id]);
-                foreach ($colors as $index => [$key, $label, $hex]) {
-                    $filename = $slug.'-'.$key.'.webp';
-                    $source = database_path('demo-images/'.$filename);
-                    if (! is_file($source)) {
-                        throw new \RuntimeException('Falta la ilustración '.$filename);
+            $newPaths = [];
+            try {
+                DB::transaction(function () use ($slug, $name, $type, $sector, $price, $colors, &$newPaths) {
+                    $product = Product::create(['slug' => 'demo-'.$slug, 'name' => $name.' · Demo', 'product_type' => $type, 'short_description' => 'Producto de demostración con dos colores. Imagen y precio de ejemplo.', 'description' => 'Muestra para probar el catálogo y la selección de colores; no representa existencias ni especificaciones finales del cliente.', 'reference_price' => $price, 'currency' => 'MXN', 'is_available' => true, 'is_published' => true, 'is_featured' => in_array($slug, ['filipina-esencial', 'conjunto-quirurgico', 'camisa-industrial']), 'has_variants' => true]);
+                    $product->sectors()->sync([Sector::where('slug', $sector)->firstOrFail()->id]);
+                    foreach ($colors as $index => [$key, $label, $hex]) {
+                        $filename = $slug.'-'.$key.'.webp';
+                        $source = database_path('demo-images/'.$filename);
+                        if (! is_file($source)) {
+                            throw new \RuntimeException('Falta la ilustración '.$filename);
+                        }
+                        $path = app(ImageProcessor::class)->process(new File($source), $product->id);
+                        $newPaths[] = $path;
+                        if ($index === 0) {
+                            $product->images()->create(['path' => $path, 'alt' => $name.' · Muestra', 'is_primary' => true]);
+                        }
+                        $variant = $product->variants()->create(['color' => $label, 'color_hex' => $hex, 'size' => '', 'is_available' => true]);
+                        $product->images()->create(['path' => $path, 'alt' => $name.' '.$label.' · Muestra', 'product_variant_id' => $variant->id]);
                     }
-                    $path = 'demo/'.$filename;
-                    if (! Storage::disk('public')->put($path, file_get_contents($source))) {
-                        throw new \RuntimeException('No se pudo guardar '.$filename);
-                    }
-                    if ($index === 0) {
-                        $product->images()->create(['path' => $path, 'alt' => $name.' · Muestra', 'is_primary' => true]);
-                    }
-                    $variant = $product->variants()->create(['color' => $label, 'color_hex' => $hex, 'size' => '', 'is_available' => true]);
-                    $product->images()->create(['path' => $path, 'alt' => $name.' '.$label.' · Muestra', 'product_variant_id' => $variant->id]);
+                });
+            } catch (\Throwable $exception) {
+                foreach ($newPaths as $path) {
+                    app(ImageProcessor::class)->deleteIfUnused($path);
                 }
-            });
+                throw $exception;
+            }
         }
     }
 }

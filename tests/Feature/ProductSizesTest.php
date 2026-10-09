@@ -29,7 +29,7 @@ class ProductSizesTest extends TestCase
         $product = Product::firstOrFail();
         $this->assertSame(['XS', 'M', 'XL'], $product->available_sizes);
         $this->assertNull($product->care_instructions);
-        $this->get('/productos/filipina-tallas')->assertOk()->assertSee('Tallas disponibles')->assertSee('>XS</li>', false)->assertDontSee('>XXL</li>', false);
+        $this->get('/productos/filipina-tallas')->assertOk()->assertSee('Tallas disponibles')->assertSee('data-size="XS"', false)->assertDontSee('data-size="XXL"', false);
         $this->get('/admin/productos/'.$product->id.'/edit')->assertOk()->assertSee('Cuidados (opcional)')->assertSee('Marcar todas');
         $this->put('/admin/productos/'.$product->id, $this->data(['available_sizes' => ['G', 'L', 'XXL']]))->assertSessionHasNoErrors();
         $this->assertSame(['G', 'L', 'XXL'], $product->fresh()->available_sizes);
@@ -44,5 +44,15 @@ class ProductSizesTest extends TestCase
         $this->post('/admin/productos', $this->data(['available_sizes' => ['inventada']]))->assertSessionHasErrors('available_sizes.0');
         $this->post('/admin/productos', $this->data(['available_sizes' => ['M', 'M']]))->assertSessionHasErrors('available_sizes.0');
         $this->assertDatabaseCount('products', 0);
+    }
+
+    public function test_quote_preserves_only_available_product_options(): void
+    {
+        $product = Product::create(['name' => 'Filipina', 'slug' => 'filipina', 'short_description' => 'Prenda clínica', 'reference_price' => 450, 'is_available' => true, 'has_variants' => true, 'available_sizes' => ['XS', 'M']]);
+        $product->variants()->create(['color' => 'Azul', 'size' => '', 'design' => '', 'is_available' => true]);
+        $this->get('/contacto?product=filipina&size=M&color=Azul')->assertOk()->assertSee('Talla: M')->assertSee('Color: Azul');
+        $this->get('/contacto?product=filipina&size=XXL&color=Rojo')->assertOk()->assertDontSee('Talla: XXL')->assertDontSee('Color: Rojo');
+        $product->update(['is_available' => false]);
+        $this->get('/contacto?product=filipina&size=M&color=Azul')->assertOk()->assertDontSee('Tu selección:');
     }
 }

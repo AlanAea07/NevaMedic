@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Product;
 use App\Models\Sector;
 use App\Models\User;
+use App\Services\RemoteImageDownloader;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Schema;
@@ -14,6 +15,14 @@ use Tests\TestCase;
 class RolesAndVariantsTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Storage::fake('public');
+        $bytes = base64_decode('UklGRjoAAABXRUJQVlA4IC4AAACQAQCdASoEAAQAAUAmJaACdLoAA5gA/vtV4/+lwf/S4P/pcH/pcH8bss4bpAAA');
+        $this->mock(RemoteImageDownloader::class)->shouldReceive('download')->andReturn($bytes);
+    }
 
     private function data(array $extra = []): array
     {
@@ -63,7 +72,7 @@ class RolesAndVariantsTest extends TestCase
         $product = Product::firstOrFail();
         $this->assertCount(2, $product->variants);
         $this->assertDatabaseCount('product_images', 3);
-        $this->assertSame('https://example.com/cafe.webp', $product->variants->firstWhere('color', 'Café')->images->first()->external_url);
+        $this->assertNull($product->variants->firstWhere('color', 'Café')->images->first()->external_url);
         $this->get('/productos/filipina-demo')->assertOk()->assertSee('Elige un color')->assertSee('Café');
         $this->get('/admin/productos/'.$product->id.'/edit')->assertOk();
         $this->put('/admin/productos/'.$product->id, $this->data(['has_variants' => 0]))->assertSessionHasNoErrors();
@@ -93,13 +102,13 @@ class RolesAndVariantsTest extends TestCase
         $product = Product::firstOrFail();
         $variant = $product->variants()->firstOrFail();
         $path = $variant->images()->first()->path;
-        Storage::disk('public')->assertExists($path);
+        Storage::disk('public')->assertExists([$path.'.webp', $path.'.jpg']);
         $removed = $product->images()->whereNull('product_variant_id')->first();
         $this->put('/admin/productos/'.$product->id, $this->data(['has_variants' => 1, 'variants' => [['id' => $variant->id, 'color' => 'Café', 'color_hex' => '#795548', 'image_source' => 'url', 'image_url' => 'https://example.com/cafe.webp']], 'remove_images' => [$removed->id]]))->assertSessionHasNoErrors();
-        Storage::disk('public')->assertMissing($path);
-        Storage::disk('public')->assertMissing($removed->path);
+        Storage::disk('public')->assertMissing([$path.'.webp', $path.'.jpg']);
+        Storage::disk('public')->assertMissing([$removed->path.'.webp', $removed->path.'.jpg']);
         $this->assertDatabaseCount('product_images', 2);
         $this->assertDatabaseHas('product_variants', ['id' => $variant->id, 'color' => 'Café']);
-        $this->assertDatabaseHas('product_images', ['product_variant_id' => $variant->id, 'external_url' => 'https://example.com/cafe.webp']);
+        $this->assertDatabaseHas('product_images', ['product_variant_id' => $variant->id, 'external_url' => null]);
     }
 }

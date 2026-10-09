@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\Sector;
 use App\Models\User;
 use App\Services\Catalog\ProductService;
+use App\Services\RemoteImageDownloader;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -16,6 +17,14 @@ use Tests\TestCase;
 class ProductImageTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Storage::fake('public');
+        $file = $this->webp();
+        $this->mock(RemoteImageDownloader::class)->shouldReceive('download')->andReturn(file_get_contents($file->getPathname()));
+    }
 
     private function data(array $extra = []): array
     {
@@ -41,33 +50,34 @@ class ProductImageTest extends TestCase
         $product = Product::firstOrFail();
         $image = $product->images()->firstOrFail();
         $path = $image->path;
-        Storage::disk('public')->assertExists($path);
+        Storage::disk('public')->assertExists([$path.'.webp', $path.'.jpg']);
         $this->assertNull($image->external_url);
         $this->get('/productos')->assertSee($image->url);
         $this->get('/admin/productos/'.$product->id.'/edit')->assertOk()->assertSee('Así se verá en el catálogo');
         $this->put('/admin/productos/'.$product->id, $this->data(['image_source' => 'keep']))->assertSessionHasNoErrors();
-        Storage::disk('public')->assertExists($path);
+        Storage::disk('public')->assertExists([$path.'.webp', $path.'.jpg']);
         $this->assertDatabaseHas('product_images', ['id' => $image->id, 'path' => $path]);
 
         $this->put('/admin/productos/'.$product->id, $this->data([
             'image_source' => 'url', 'image_url' => 'https://drive.google.com/file/d/example_123/view?usp=sharing',
         ]))->assertSessionHasNoErrors();
-        Storage::disk('public')->assertMissing($path);
+        Storage::disk('public')->assertMissing([$path.'.webp', $path.'.jpg']);
         $this->assertDatabaseCount('product_images', 1);
-        $this->assertDatabaseHas('product_images', ['path' => '', 'external_url' => 'https://drive.google.com/thumbnail?id=example_123&sz=w1200']);
-        $this->get('/productos/filipina-azul')->assertOk()->assertSee('https://drive.google.com/thumbnail?id=example_123&sz=w1200');
+        $this->assertNull($image->fresh()->external_url);
+        $this->assertNotSame($path, $image->fresh()->path);
+        Storage::disk('public')->assertExists($image->fresh()->path.'.jpg');
+        $this->get('/productos/filipina-azul')->assertOk()->assertSee($image->fresh()->url);
     }
 
-    public function test_non_webp_disguised_and_oversized_files_are_rejected(): void
+    public function test_disallowed_invalid_and_oversized_files_are_rejected(): void
     {
         Storage::fake('public');
         $this->actingAs(User::factory()->create(['is_admin' => true]));
         $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=');
         foreach ([
-            UploadedFile::fake()->createWithContent('image.png', $png),
-            UploadedFile::fake()->createWithContent('disguised.webp', $png),
+            UploadedFile::fake()->createWithContent('invalid.gif', $png),
             UploadedFile::fake()->createWithContent('invalid.webp', 'not an image'),
-            $this->webp()->size(2049),
+            $this->webp()->size(10241),
         ] as $file) {
             $file->mimeType(mime_content_type($file->getPathname()));
             $this->post('/admin/productos', $this->data(['image_source' => 'file', 'image_file' => $file]))->assertSessionHasErrors('image_file');
@@ -76,16 +86,18 @@ class ProductImageTest extends TestCase
         $this->assertEmpty(Storage::disk('public')->allFiles());
     }
 
-    public function test_image_sources_require_valid_input_and_direct_link_is_preserved(): void
+    public function test_image_sources_require_valid_input_and_remote_image_is_stored_locally(): void
     {
         $this->actingAs(User::factory()->create(['is_admin' => true]));
         $this->post('/admin/productos', $this->data(['image_source' => 'file']))->assertSessionHasErrors('image_file');
-        foreach (['', 'javascript:alert(1)', 'http://example.com/image.webp', ['invalid']] as $url) {
+        foreach (['', 'javascript:alert(1)', ['invalid']] as $url) {
             $this->post('/admin/productos', $this->data(['image_source' => 'url', 'image_url' => $url]))->assertSessionHasErrors('image_url');
         }
         $url = 'https://images.example.com/prenda.webp?version=2';
         $this->post('/admin/productos', $this->data(['image_source' => 'url', 'image_url' => $url]))->assertSessionHasNoErrors();
-        $this->assertDatabaseHas('product_images', ['external_url' => $url, 'path' => '']);
+        $image = Product::firstOrFail()->images()->firstOrFail();
+        $this->assertNull($image->external_url);
+        Storage::disk('public')->assertExists([$image->path.'.webp', $image->path.'.jpg']);
     }
 
     public function test_database_failure_cleans_new_file_without_removing_existing_image(): void
@@ -104,7 +116,7 @@ class ProductImageTest extends TestCase
         } finally {
             ActivityLog::flushEventListeners();
         }
-        $this->assertSame([$oldPath], Storage::disk('public')->allFiles());
+        $this->assertEqualsCanonicalizing([$oldPath.'.webp', $oldPath.'.jpg'], Storage::disk('public')->allFiles());
         $this->assertDatabaseHas('product_images', ['path' => $oldPath]);
     }
 }

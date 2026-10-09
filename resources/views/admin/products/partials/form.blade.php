@@ -34,8 +34,8 @@
         <label class="flex cursor-pointer items-center gap-2 rounded border border-neva-line p-3"><input type="radio" name="image_source" value="keep" x-model="source" @checked($imageSource === 'keep')>{{ $currentImage ? 'Conservar foto actual' : 'Agregar después' }}</label>
     </div>
     <div x-cloak x-show="source === 'file'" class="space-y-2">
-        <label class="block">Archivo WebP<input type="file" name="image_file" accept=".webp,image/webp" class="form-input" :disabled="source !== 'file'" :required="source === 'file'" @change="selectFile($event)"></label>
-        <p class="text-sm text-neva-muted">Solo WebP, máximo 2 MB. Si el formulario muestra errores, vuelve a seleccionar el archivo.</p>
+        <label class="block">Archivo JPG, PNG o WebP<input type="file" name="image_file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" class="form-input" :disabled="source !== 'file'" :required="source === 'file'" @change="selectFile($event)"></label>
+        <p class="text-sm text-neva-muted">JPG, PNG o WebP, máximo 10 MB. Si el formulario muestra errores, vuelve a seleccionar el archivo.</p>
     </div>
     <div x-cloak x-show="source === 'url'" class="space-y-2">
         <label class="block">Enlace público de la imagen<input type="url" name="image_url" class="form-input" maxlength="2048" placeholder="https://ejemplo.com/imagen.webp" x-model="url" @input.debounce.400ms="refreshImage()" :disabled="source !== 'url'" :required="source === 'url'"></label>

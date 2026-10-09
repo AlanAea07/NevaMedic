@@ -6,14 +6,16 @@ use App\Models\ActivityLog;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\User;
+use App\Services\ImageProcessor;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class ProductService
 {
+    public function __construct(private ImageProcessor $processor) {}
+
     public function save(Product $product, array $data, User $actor): Product
     {
         $data['is_published'] = (bool) $data['is_available'];
@@ -63,14 +65,12 @@ class ProductService
             });
         } catch (Throwable $exception) {
             foreach ($newPaths as $path) {
-                Storage::disk('public')->delete($path);
+                $this->processor->deleteFiles($path);
             }
             throw $exception;
         }
         foreach (array_unique($oldPaths) as $path) {
-            if ($path && str_starts_with($path, 'products/') && ! ProductImage::where('path', $path)->exists()) {
-                Storage::disk('public')->delete($path);
-            }
+            $this->processor->deleteIfUnused($path);
         }
 
         return $product;
@@ -78,18 +78,16 @@ class ProductService
 
     private function saveImage(Product $product, ?ProductImage $image, array $data, ?int $variantId, bool $primary, array &$newPaths, array &$oldPaths): void
     {
-        $path = '';
-        if ($data['image_source'] === 'file') {
-            $path = $data['image_file']->store('products', 'public');
-            if (! $path) {
-                throw ValidationException::withMessages(['image_file' => 'No se pudo guardar la imagen. Intenta nuevamente.']);
-            }
-            $newPaths[] = $path;
+        try {
+            $path = $this->processor->process($data['image_source'] === 'file' ? $data['image_file'] : $data['image_url'], $product->id);
+        } catch (Throwable $exception) {
+            throw ValidationException::withMessages(['image_'.$data['image_source'] => 'No se pudo procesar una fotografía: '.$exception->getMessage()]);
         }
+        $newPaths[] = $path;
         if ($image) {
             $oldPaths[] = $image->path;
         }
-        $attributes = ['path' => $path, 'external_url' => $path ? null : $data['image_url'], 'alt' => $product->name, 'is_primary' => $primary, 'product_variant_id' => $variantId, 'sort_order' => $primary ? 0 : 1];
+        $attributes = ['path' => $path, 'external_url' => null, 'alt' => $product->name, 'is_primary' => $primary, 'product_variant_id' => $variantId, 'sort_order' => $primary ? 0 : 1];
         if ($image) {
             $image->update($attributes);
         } else {

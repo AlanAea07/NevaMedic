@@ -1,6 +1,11 @@
 @props(['name'])
 @php
     $paths = [
+        'check' => 'm5 12 4 4L19 6',
+        'ruler' => 'm3 16 13-13 5 5L8 21l-5-5Zm5-5 2 2m2-6 2 2m2-6 2 2',
+        'chat' => 'M21 11a8 8 0 0 1-8 8H7l-5 3 2-6a8 8 0 1 1 17-5ZM8 10h8m-8 4h5',
+        'care' => 'M3 7h18l-2 13H5L3 7Zm1 5c3-4 5 4 8 0s5 4 8 0M8 3v1m4-1v1m4-1v1',
+        'truck' => 'M1 4h13v13H1V4Zm13 5h5l4 5v3h-9M5 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm14 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z',
         'admin.dashboard' => 'M6 3h13v18H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm0 0v18M9 8h7M9 12h7M9 16h4',
         'admin.products.index' => 'm12 3 9 5v8l-9 5-9-5V8l9-5Zm0 10 9-5M12 13 3 8m9 5v8M7.5 5.5l9 5',
         'admin.products.create' => 'M12 16V3m-5 5 5-5 5 5M4 14v6a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-6',

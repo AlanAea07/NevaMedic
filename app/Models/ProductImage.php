@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\ImageProcessor;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -11,7 +12,9 @@ class ProductImage extends Model
 
     public function getUrlAttribute(): string
     {
-        return $this->external_url ?: asset('storage/'.ltrim($this->path, '/'));
+        $path = ImageProcessor::isProcessed($this->path) ? $this->path.'.webp' : $this->path;
+
+        return $this->external_url ?: asset('storage/'.ltrim($path, '/'));
     }
 
     protected function casts(): array
