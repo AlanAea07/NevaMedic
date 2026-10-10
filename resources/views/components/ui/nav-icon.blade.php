@@ -1,6 +1,9 @@
 @props(['name'])
 @php
     $paths = [
+        'catalog' => 'M4 6h16M4 12h12M4 18h8',
+        'customize' => 'm12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3Z',
+        'download' => 'M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5',
         'chevron-left' => 'm15 5-7 7 7 7',
         'chevron-right' => 'm9 5 7 7-7 7',
         'photos' => 'M4 4h16v16H4V4Zm0 12 5-5 4 4 3-3 4 4M14 8h.01',

@@ -13,7 +13,7 @@
                         <div class="bg-neva-navy p-6 text-white lg:p-8">
                             <p class="text-xs font-semibold uppercase tracking-widest text-neva-silver">Catálogo digital</p>
                             <p class="mt-4 font-display text-3xl">Encuentra la prenda indicada para cada entorno.</p>
-                            <a href="{{ route('products.index') }}" class="mt-6 inline-flex min-h-11 items-center gap-3 underline underline-offset-4">Ver todo el catálogo <span aria-hidden="true">→</span></a>
+                            <a href="{{ route('products.index') }}" class="mt-6 inline-flex min-h-11 items-center gap-3 underline underline-offset-4">Productos en general <span aria-hidden="true">→</span></a>
                         </div>
                         @foreach($navigationSectors as $sector)
                             <div class="border-t border-neva-line p-6 lg:border-l lg:border-t-0 lg:p-8">

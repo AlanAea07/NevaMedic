@@ -17,6 +17,26 @@
 }
 
 .photo-frame { animation: photo-reveal 180ms ease-out; transition: transform 240ms ease-out; }
+.home-hero { background: radial-gradient(ellipse at 50% 35%, #0c2f62 0%, #07172d 48%, #030810 100%); }
+.home-emblem { filter: brightness(0) invert(1); }
+.sector-card { transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease; }
+.sector-symbol { color: var(--sector-color); background: var(--sector-light); }
+.sector-arrow { transition: transform 220ms ease; }
+.all-products-card { transition: background-color 220ms ease; }
+.reveal-pending { opacity: 0; }
+.reveal-visible { animation: home-reveal 480ms ease-out both; animation-delay: var(--reveal-delay, 0ms); }
+@keyframes home-reveal { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+@media (hover: hover) and (pointer: fine) {
+    .sector-card:hover { transform: translateY(-4px); border-color: var(--sector-color); box-shadow: 0 12px 28px rgb(7 16 30 / .08); }
+    .sector-card:hover .sector-arrow { transform: translateX(3px); }
+    .all-products-card:hover { background-color: #164273; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .reveal-pending { opacity: 1; }
+    .reveal-visible { animation: none; }
+    .sector-card, .sector-arrow, .all-products-card { transition: none; }
+    .sector-card:hover, .sector-card:hover .sector-arrow { transform: none; }
+}
 @keyframes photo-reveal { from { opacity: .65; } to { opacity: 1; } }
 @media (hover: hover) and (pointer: fine) {
     .product-card .photo-viewer:hover .photo-frame { transform: scale(1.035); }

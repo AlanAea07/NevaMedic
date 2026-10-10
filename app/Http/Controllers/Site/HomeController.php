@@ -12,7 +12,7 @@ class HomeController extends Controller
     public function __invoke(): View
     {
         return view('site.home', [
-            'sectors' => Sector::where('is_active', true)->orderBy('id')->get(),
+            'sectors' => Sector::where('is_active', true)->withCount(['products' => fn ($query) => $query->published()])->orderBy('id')->get(),
             'products' => Product::published()->where('is_featured', true)->with(['images', 'sectors', 'variants'])->latest()->limit(3)->get(),
         ]);
     }

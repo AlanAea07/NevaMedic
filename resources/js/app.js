@@ -1,4 +1,5 @@
 import './bootstrap';
+import './home-motion';
 
 import Alpine from 'alpinejs';
 import productEditor from './product-editor';
