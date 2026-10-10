@@ -19,6 +19,9 @@ class SaveProductRequest extends FormRequest
             foreach ($variants as &$variant) {
                 if (is_array($variant)) {
                     $variant['image_url'] = ExternalImageUrl::normalize($variant['image_url'] ?? null);
+                    if (is_array($variant['gallery_urls'] ?? null)) {
+                        $variant['gallery_urls'] = array_map([ExternalImageUrl::class, 'normalize'], $variant['gallery_urls']);
+                    }
                     if (is_string($variant['color'] ?? null)) {
                         $variant['color'] = trim($variant['color']);
                     }
@@ -46,6 +49,11 @@ class SaveProductRequest extends FormRequest
             'variants.*.image_url.url' => 'El enlace de cada color debe comenzar con http:// o https://.',
             'gallery_files.*.mimetypes' => 'Las fotografías de la galería deben ser JPG, PNG o WebP.',
             'gallery_files.*.max' => 'Cada fotografía debe pesar como máximo 10 MB.',
+            'variants.*.gallery_files.max' => 'Selecciona como máximo 8 fotos adicionales por color en cada carga.',
+            'variants.*.gallery_urls.max' => 'Agrega como máximo 8 enlaces adicionales por color en cada carga.',
+            'variants.*.gallery_files.*.mimetypes' => 'Las fotos adicionales de cada color deben ser JPG, PNG o WebP.',
+            'variants.*.gallery_files.*.max' => 'Cada fotografía de color debe pesar como máximo 10 MB.',
+            'variants.*.gallery_urls.*.url' => 'El enlace de la vista adicional debe comenzar con http:// o https://.',
             'slug.required' => 'Escribe el nombre para el enlace, por ejemplo: filipina-azul.',
             'slug.regex' => 'Usa solo minúsculas, números y guiones. Ejemplo: filipina-azul. No escribas https:// ni .com.',
             'slug.unique' => 'Ese nombre para el enlace ya existe. Prueba otro, como filipina-azul-clasica.',
@@ -80,6 +88,12 @@ class SaveProductRequest extends FormRequest
             'variants.*.image_source' => ['required', Rule::in(['keep', 'file', 'url'])],
             'variants.*.image_file' => ['exclude_unless:variants.*.image_source,file', 'required_if:variants.*.image_source,file', 'file', 'image', 'mimetypes:image/jpeg,image/png,image/webp', 'extensions:jpg,jpeg,png,webp', 'max:10240'],
             'variants.*.image_url' => ['exclude_unless:variants.*.image_source,url', 'required_if:variants.*.image_source,url', 'string', 'url:http,https', 'max:2048'],
+            'variants.*.gallery_files' => ['nullable', 'array', 'max:8'],
+            'variants.*.gallery_files.*' => ['file', 'image', 'mimetypes:image/jpeg,image/png,image/webp', 'extensions:jpg,jpeg,png,webp', 'max:10240'],
+            'variants.*.gallery_urls' => ['nullable', 'array', 'max:8'],
+            'variants.*.gallery_urls.*' => ['nullable', 'string', 'url:http,https', 'max:2048'],
+            'variants.*.remove_images' => ['nullable', 'array'],
+            'variants.*.remove_images.*' => ['integer', 'distinct', Rule::exists('product_images', 'id')->where('product_id', $productId)->where('is_primary', 0)],
             'gallery_files' => ['nullable', 'array', 'max:8'],
             'gallery_files.*' => ['file', 'image', 'mimetypes:image/jpeg,image/png,image/webp', 'extensions:jpg,jpeg,png,webp', 'max:10240'],
             'gallery_urls' => ['nullable', 'array', 'max:8'],
@@ -113,6 +127,13 @@ class SaveProductRequest extends FormRequest
             foreach ($this->input('variants', []) as $index => $variant) {
                 if ($variant['image_source'] === 'keep' && ! $this->route('product')?->images()->where('product_variant_id', $variant['id'] ?? 0)->exists()) {
                     $validator->errors()->add("variants.$index.image_source", 'Cada color necesita su fotografía: sube un JPG, PNG o WebP o pega un enlace.');
+                }
+                $photos = $this->route('product')?->images()->where('product_variant_id', $variant['id'] ?? 0)->get() ?? collect();
+                $removable = $photos->skip(1)->pluck('id')->all();
+                foreach ($variant['remove_images'] ?? [] as $id) {
+                    if (!in_array((int) $id, $removable, true)) {
+                        $validator->errors()->add("variants.$index.remove_images", 'Solo puedes quitar fotos adicionales de este color. Para cambiar su foto principal, reemplázala.');
+                    }
                 }
             }
         }];

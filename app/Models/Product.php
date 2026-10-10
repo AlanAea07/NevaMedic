@@ -29,6 +29,13 @@ class Product extends Model
         return $this->images->firstWhere('product_variant_id', null) ?? ($this->has_variants ? $this->images->first() : null);
     }
 
+    public function getCatalogImagesAttribute()
+    {
+        $colors = $this->has_variants ? $this->variants->where('is_available', true)->modelKeys() : [];
+
+        return $this->images->filter(fn ($image) => $image->product_variant_id === null || in_array($image->product_variant_id, $colors, true));
+    }
+
     public function sectors(): BelongsToMany
     {
         return $this->belongsToMany(Sector::class);

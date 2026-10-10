@@ -1,6 +1,9 @@
 @props(['name'])
 @php
     $paths = [
+        'chevron-left' => 'm15 5-7 7 7 7',
+        'chevron-right' => 'm9 5 7 7-7 7',
+        'photos' => 'M4 4h16v16H4V4Zm0 12 5-5 4 4 3-3 4 4M14 8h.01',
         'check' => 'm5 12 4 4L19 6',
         'ruler' => 'm3 16 13-13 5 5L8 21l-5-5Zm5-5 2 2m2-6 2 2m2-6 2 2',
         'chat' => 'M21 11a8 8 0 0 1-8 8H7l-5 3 2-6a8 8 0 1 1 17-5ZM8 10h8m-8 4h5',

@@ -18,7 +18,7 @@ class ProductController extends Controller
             'sector' => ['nullable', 'string', 'max:120'],
             'type' => ['nullable', Rule::in(array_keys(config('neva.product_types')))],
         ]);
-        $products = Product::published()->with(['images', 'sectors'])
+        $products = Product::published()->with(['images', 'sectors', 'variants'])
             ->when($filters['type'] ?? null, fn ($q, $type) => $q->where('product_type', $type))
             ->when($filters['q'] ?? null, fn ($q, $term) => $q->where('name', 'like', '%'.$term.'%'))
             ->when($filters['sector'] ?? null, fn ($q, $slug) => $q->whereHas('sectors', fn ($q) => $q->where('slug', $slug)->where('is_active', true)))

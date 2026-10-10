@@ -5,6 +5,7 @@
 @if($product)
 <div class="mb-6 rounded border border-white/20 p-4"><p class="font-semibold">Tu selección: {{ $product->name }}</p>@if($size)<p>Talla: {{ $size }}</p>@endif @if($color)<p>Color: {{ $color }}</p>@endif</div>
 @endif
+@if($sizeAdvice)<p class="mb-6 text-sm">Necesitas asesoría para elegir tu talla. Incluiremos esta solicitud en tu mensaje.</p>@endif
 @if(preg_match('/^[1-9][0-9]{9,14}$/', (string) config('neva.whatsapp')))
 <a class="btn-light" href="https://wa.me/{{ config('neva.whatsapp') }}?text={{ rawurlencode($quoteMessage) }}" target="_blank" rel="noopener noreferrer">Contactar por WhatsApp</a>
 @else<p class="text-neva-silver">El canal de contacto estará disponible próximamente.</p>@endif

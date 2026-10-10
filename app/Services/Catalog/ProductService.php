@@ -52,6 +52,16 @@ class ProductService
                         if ($row['image_source'] !== 'keep') {
                             $this->saveImage($product, $product->images()->where('product_variant_id', $variant->id)->first(), $row, $variant->id, false, $newPaths, $oldPaths);
                         }
+                        foreach ($product->images()->where('product_variant_id', $variant->id)->whereIn('id', $row['remove_images'] ?? [])->get() as $image) {
+                            $oldPaths[] = $image->path;
+                            $image->delete();
+                        }
+                        foreach ($row['gallery_files'] ?? [] as $file) {
+                            $this->saveImage($product, null, ['image_source' => 'file', 'image_file' => $file], $variant->id, false, $newPaths, $oldPaths);
+                        }
+                        foreach (array_filter($row['gallery_urls'] ?? []) as $url) {
+                            $this->saveImage($product, null, ['image_source' => 'url', 'image_url' => $url], $variant->id, false, $newPaths, $oldPaths);
+                        }
                     }
                     foreach ($product->variants()->whereNotIn('id', $retained)->get() as $variant) {
                         foreach ($variant->images as $image) {
@@ -87,7 +97,7 @@ class ProductService
         if ($image) {
             $oldPaths[] = $image->path;
         }
-        $attributes = ['path' => $path, 'external_url' => null, 'alt' => $product->name, 'is_primary' => $primary, 'product_variant_id' => $variantId, 'sort_order' => $primary ? 0 : 1];
+        $attributes = ['path' => $path, 'external_url' => null, 'alt' => $product->name, 'is_primary' => $primary, 'product_variant_id' => $variantId, 'sort_order' => $image?->sort_order ?? ($primary ? 0 : (int) $product->images()->max('sort_order') + 1)];
         if ($image) {
             $image->update($attributes);
         } else {

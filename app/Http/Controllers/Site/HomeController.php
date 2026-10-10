@@ -13,7 +13,7 @@ class HomeController extends Controller
     {
         return view('site.home', [
             'sectors' => Sector::where('is_active', true)->orderBy('id')->get(),
-            'products' => Product::published()->where('is_featured', true)->with(['images', 'sectors'])->latest()->limit(3)->get(),
+            'products' => Product::published()->where('is_featured', true)->with(['images', 'sectors', 'variants'])->latest()->limit(3)->get(),
         ]);
     }
 }

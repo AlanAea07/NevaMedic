@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Sector;
 use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
 class PageController extends Controller
@@ -15,7 +16,7 @@ class PageController extends Controller
         return view('site.customization');
     }
 
-    public function contact(Request $request): View
+    public function contact(Request $request): View|RedirectResponse
     {
         $slug = $request->query('product');
         $product = is_string($slug) ? Product::published()->with('variants')->where('slug', $slug)->first() : null;
@@ -26,8 +27,15 @@ class PageController extends Controller
         $quoteMessage = 'Hola, me interesa cotizar '.($product?->name ?? 'uniformes Neva Medic');
         if ($size) $quoteMessage .= ', talla '.$size;
         if ($color) $quoteMessage .= ', color '.$color;
+        $sizeAdvice = $product && !$size && $request->boolean('size_advice');
+        if ($sizeAdvice) $quoteMessage .= '. Necesito asesoría para elegir mi talla';
 
-        return view('site.contact', compact('product', 'size', 'color', 'quoteMessage'));
+        $whatsapp = (string) config('neva.whatsapp');
+        if ($product && $request->boolean('direct') && preg_match('/^[1-9][0-9]{9,14}$/', $whatsapp)) {
+            return redirect()->away('https://wa.me/'.$whatsapp.'?text='.rawurlencode($quoteMessage));
+        }
+
+        return view('site.contact', compact('product', 'size', 'color', 'sizeAdvice', 'quoteMessage'));
     }
 
     public function privacy(): View

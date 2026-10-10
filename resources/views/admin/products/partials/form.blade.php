@@ -5,7 +5,10 @@
     $colorRows = old('variants', $product->variants->map(fn ($variant) => ['id' => $variant->id, 'color' => $variant->color, 'color_hex' => $variant->color_hex ?: '#1765d8', 'image_source' => 'keep'])->all());
     $imageState['variants'] = collect(is_array($colorRows) ? $colorRows : [])->filter(fn ($row) => is_array($row))->map(function ($row) use ($product) {
         $image = !empty($row['id']) ? $product->images->firstWhere('product_variant_id', $row['id']) : null;
-        return ['id' => $row['id'] ?? '', 'color' => $row['color'] ?? '', 'color_hex' => $row['color_hex'] ?? '#1765d8', 'image_source' => $row['image_source'] ?? 'file', 'image_url' => $row['image_url'] ?? $image?->external_url ?? '', 'existing' => $image?->url ?? ''];
+        return ['id' => $row['id'] ?? '', 'color' => $row['color'] ?? '', 'color_hex' => $row['color_hex'] ?? '#1765d8', 'image_source' => $row['image_source'] ?? 'file', 'image_url' => $row['image_url'] ?? $image?->external_url ?? '', 'existing' => $image?->url ?? '',
+            'galleryLinks' => $row['gallery_urls'] ?? [], 'removeImages' => array_map('strval', $row['remove_images'] ?? []),
+            'existingGallery' => $image ? $product->images->where('product_variant_id', $image->product_variant_id)->skip(1)->map(fn ($photo) => ['id' => $photo->id, 'url' => $photo->url])->values()->all() : [],
+        ];
     })->values()->all();
     $imageState['hasVariants'] = (bool) old('has_variants', $product->has_variants);
     $imageState['galleryLinks'] = old('gallery_urls', []);
@@ -27,7 +30,7 @@
 @include('admin.products.partials.sizes')
 <fieldset class="space-y-4 border-t border-neva-line pt-5">
     <legend class="text-xl font-semibold">Foto principal del producto</legend>
-    <p class="text-sm text-neva-muted">Esta foto se mostrará en el listado. Elige cómo agregarla:</p>
+    <p class="text-sm text-neva-muted">Esta será la primera foto del listado y de la vista general. Puedes agregar más vistas debajo sin crear colores nuevos.</p>
     <div class="flex flex-wrap gap-3">
         <label class="flex cursor-pointer items-center gap-2 rounded border border-neva-line p-3" :class="{ 'border-neva-blue bg-neva-mist': source === 'file' }"><input type="radio" name="image_source" value="file" x-model="source" @checked($imageSource === 'file')>Subir desde mi equipo</label>
         <label class="flex cursor-pointer items-center gap-2 rounded border border-neva-line p-3" :class="{ 'border-neva-blue bg-neva-mist': source === 'url' }"><input type="radio" name="image_source" value="url" x-model="source" @checked($imageSource === 'url')>Pegar un enlace</label>

@@ -28,7 +28,7 @@ export default (initial) => ({
     available: false,
     sectors: '',
     hasVariants: !!initial.hasVariants,
-    variants: (initial.variants || []).map((row, index) => ({ ...row, _key: index + 1, fileUrl: '', error: '' })),
+    variants: (initial.variants || []).map((row, index) => ({ galleryLinks: [], existingGallery: [], removeImages: [], ...row, _key: index + 1, fileUrl: '', error: '', galleryPreviews: [], galleryError: '' })),
     nextKey: (initial.variants || []).length + 1,
     previewColor: '',
     galleryLinks: initial.galleryLinks || [],
@@ -42,11 +42,12 @@ export default (initial) => ({
         return row.image_source === 'file' ? row.fileUrl : row.image_source === 'url' ? externalImageUrl(row.image_url) : row.existing;
     },
     addVariant() {
-        this.variants.push({ _key: this.nextKey++, id: '', color: '', color_hex: '#1765d8', image_source: 'file', image_url: '', existing: '', fileUrl: '', error: '' });
+        this.variants.push({ _key: this.nextKey++, id: '', color: '', color_hex: '#1765d8', image_source: 'file', image_url: '', existing: '', fileUrl: '', error: '', galleryLinks: [], existingGallery: [], removeImages: [], galleryPreviews: [], galleryError: '' });
     },
     removeVariant(index) {
         const row = this.variants[index];
         if (row.fileUrl) URL.revokeObjectURL(row.fileUrl);
+        row.galleryPreviews.forEach(url => URL.revokeObjectURL(url));
         if (this.previewColor === row._key) this.previewColor = '';
         this.variants.splice(index, 1);
     },
@@ -70,6 +71,14 @@ export default (initial) => ({
         this.galleryError = files.length > 8 ? 'Selecciona como máximo 8 imágenes.' : files.map(file => this.fileError(file)).find(Boolean) || '';
         if (this.galleryError) event.target.value = '';
         else this.galleryPreviews = files.map(file => URL.createObjectURL(file));
+    },
+    selectVariantGalleryFiles(row, event) {
+        row.galleryPreviews.forEach(url => URL.revokeObjectURL(url));
+        row.galleryPreviews = [];
+        const files = [...event.target.files];
+        row.galleryError = files.length > 8 ? 'Selecciona como máximo 8 imágenes.' : files.map(file => this.fileError(file)).find(Boolean) || '';
+        if (row.galleryError) event.target.value = '';
+        else row.galleryPreviews = files.map(file => URL.createObjectURL(file));
     },
     init() {
         this.$nextTick(() => this.sync());
@@ -113,6 +122,9 @@ export default (initial) => ({
     destroy() {
         if (this.fileUrl) URL.revokeObjectURL(this.fileUrl);
         this.galleryPreviews.forEach(url => URL.revokeObjectURL(url));
-        this.variants.forEach(row => { if (row.fileUrl) URL.revokeObjectURL(row.fileUrl); });
+        this.variants.forEach(row => {
+            if (row.fileUrl) URL.revokeObjectURL(row.fileUrl);
+            row.galleryPreviews.forEach(url => URL.revokeObjectURL(url));
+        });
     },
 });
