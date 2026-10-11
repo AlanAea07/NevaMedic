@@ -23,11 +23,12 @@ class AccountController extends Controller
             throw ValidationException::withMessages(['account' => 'No puedes desactivar tu propia cuenta administrativa.']);
         }
         DB::transaction(function () use ($account, $data, $request) {
+            $before = $account->only(['id', 'name', 'role', 'is_active']);
             $account->forceFill(['is_active' => (bool) $data['is_active'], 'remember_token' => null])->save();
             if (! $data['is_active'] && config('session.driver') === 'database') {
                 DB::table('sessions')->where('user_id', $account->id)->delete();
             }
-            ActivityLog::create(['user_id' => $request->user()->id, 'action' => $data['is_active'] ? 'activated' : 'deactivated', 'entity_type' => 'user', 'entity_id' => $account->id]);
+            ActivityLog::record($request->user(), $data['is_active'] ? 'activated' : 'deactivated', 'user', $account->id, $before, $account->only(['id', 'name', 'role', 'is_active']));
         });
 
         return back()->with('status', $data['is_active'] ? 'Cuenta reactivada.' : 'Cuenta desactivada. Sus datos se conservan.');

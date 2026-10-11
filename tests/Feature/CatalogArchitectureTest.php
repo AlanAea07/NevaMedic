@@ -75,7 +75,7 @@ class CatalogArchitectureTest extends TestCase
         $this->delete('/admin/productos/'.$product->id)->assertRedirect(route('admin.products.index'));
         $this->assertSoftDeleted('products', ['id' => $product->id]);
         $this->get('/productos/'.$product->slug)->assertNotFound();
-        $this->assertEquals(3, ActivityLog::count());
+        $this->assertEquals(3, ActivityLog::where('entity_type', 'product')->count());
     }
 
     public function test_invalid_product_does_not_write_partial_data(): void

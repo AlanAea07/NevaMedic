@@ -18,7 +18,10 @@
 
 .photo-frame { animation: photo-reveal 180ms ease-out; transition: transform 240ms ease-out; }
 .home-hero { background: radial-gradient(ellipse at 50% 35%, #0c2f62 0%, #07172d 48%, #030810 100%); }
-.home-emblem { filter: brightness(0) invert(1); }
+/* Frame only the emblem in the supplied artwork, keeping the original file intact. */
+.home-emblem { position: relative; overflow: hidden; width: 260px; max-width: 100%; aspect-ratio: 640 / 700; margin: 24px auto 12px; mix-blend-mode: screen; }
+.home-emblem-source { position: absolute; width: 195.9375%; max-width: none; height: auto; left: -48.4375%; top: -25%; filter: grayscale(1) contrast(1.8) invert(1); }
+@media (min-width: 640px) { .home-emblem { width: 320px; } }
 .sector-card { transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease; }
 .sector-symbol { color: var(--sector-color); background: var(--sector-light); }
 .sector-arrow { transition: transform 220ms ease; }

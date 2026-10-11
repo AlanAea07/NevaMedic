@@ -1,5 +1,6 @@
 @props(['product'])
 @php
+    $colors = $product->has_variants ? $product->variants->where('is_available', true) : collect();
     $photos = $product->catalog_images;
     $gallery = $photos->map(fn ($image) => ['id' => $image->id, 'src' => $image->url, 'alt' => $image->alt, 'color' => $image->product_variant_id])->values()->all();
 @endphp
@@ -17,6 +18,15 @@
                 <p class="text-xs text-neva-muted">Precio de referencia</p>
             </div>
             <p class="text-sm font-semibold {{ $product->is_available ? 'text-green-700' : 'text-neva-muted' }}">{{ $product->is_available ? 'Disponible' : 'No disponible' }}</p>
+            @if($colors->isNotEmpty())
+                <ul class="flex flex-wrap items-center gap-2" aria-label="Colores disponibles">
+                    @foreach($colors as $variant)
+                        <li class="h-5 w-5 shrink-0 rounded-full border border-black/10" style="background-color: {{ $variant->color_hex }}" title="{{ $variant->color }}">
+                            <span class="sr-only">{{ $variant->color }}</span>
+                        </li>
+                    @endforeach
+                </ul>
+            @endif
             <p class="text-xs text-neva-muted">{{ $product->sectors->where('is_active', true)->pluck('name')->join(' · ') }}</p>
             <p class="line-clamp-2 text-sm text-neva-muted">{{ $product->short_description }}</p>
             <span class="mt-auto flex min-h-12 w-full items-center justify-between border-t border-neva-line pt-3 text-sm font-semibold text-neva-blue">Ver detalles <span aria-hidden="true">→</span></span>

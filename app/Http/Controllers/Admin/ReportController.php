@@ -18,4 +18,9 @@ class ReportController extends Controller
     {
         return view('admin.activity.index', ['entries' => ActivityLog::with('user')->latest('id')->paginate(30)]);
     }
+
+    public function activityShow(ActivityLog $entry): View
+    {
+        return view('admin.activity.show', ['entry' => $entry->load('user')]);
+    }
 }

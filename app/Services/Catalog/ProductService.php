@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\User;
 use App\Services\ImageProcessor;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -24,9 +25,10 @@ class ProductService
         try {
             DB::transaction(function () use ($product, $data, $actor, &$newPaths, &$oldPaths) {
                 if ($product->exists) {
-                    Product::whereKey($product->id)->lockForUpdate()->firstOrFail();
+                    $product->setRawAttributes(Product::whereKey($product->id)->lockForUpdate()->firstOrFail()->getAttributes(), true);
                 }
                 $action = $product->exists ? 'updated' : 'created';
+                $before = $product->exists ? $this->snapshot($product) : null;
                 $product->fill(Arr::except($data, ['sectors', 'image_source', 'image_file', 'image_url', 'variants', 'gallery_files', 'gallery_urls', 'remove_images']))->save();
                 $product->sectors()->sync($data['sectors']);
                 if (in_array($data['image_source'] ?? 'keep', ['file', 'url'], true)) {
@@ -71,7 +73,7 @@ class ProductService
                         $variant->delete();
                     }
                 }
-                ActivityLog::create(['user_id' => $actor->id, 'action' => $action, 'entity_type' => 'product', 'entity_id' => $product->id]);
+                ActivityLog::record($actor, $action, 'product', $product->id, $before, $this->snapshot($product), ['uploads' => $this->uploadMetadata($data)]);
             });
         } catch (Throwable $exception) {
             foreach ($newPaths as $path) {
@@ -108,8 +110,67 @@ class ProductService
     public function delete(Product $product, User $actor): void
     {
         DB::transaction(function () use ($product, $actor) {
+            $product = Product::whereKey($product->id)->lockForUpdate()->firstOrFail();
+            $before = $this->snapshot($product);
             $product->delete();
-            ActivityLog::create(['user_id' => $actor->id, 'action' => 'deleted', 'entity_type' => 'product', 'entity_id' => $product->id]);
+            ActivityLog::record($actor, 'deleted', 'product', $product->id, $before, $this->snapshot($product));
         });
+    }
+
+    public function restore(int $id, User $actor): void
+    {
+        DB::transaction(function () use ($id, $actor) {
+            $product = Product::onlyTrashed()->whereKey($id)->lockForUpdate()->firstOrFail();
+            if ($product->purge_at->lessThanOrEqualTo(now())) {
+                throw ValidationException::withMessages(['product' => 'El plazo de recuperación de 14 días ha terminado.']);
+            }
+            $before = $this->snapshot($product);
+            $product->restore();
+            ActivityLog::record($actor, 'restored', 'product', $product->id, $before, $this->snapshot($product));
+        });
+    }
+
+    public function purgeExpired(int $id): bool
+    {
+        return DB::transaction(function () use ($id) {
+            $product = Product::onlyTrashed()->whereKey($id)->lockForUpdate()->first();
+            if (! $product || $product->purge_at->isFuture()) {
+                return false;
+            }
+            $before = $this->snapshot($product);
+            foreach ($product->images->pluck('path')->filter()->unique() as $path) {
+                DB::table('pending_image_deletions')->insertOrIgnore(['path' => $path, 'created_at' => now()]);
+            }
+            ActivityLog::record(null, 'purged', 'product', $product->id, $before, null, ['reason' => 'retention_expired', 'retention_days' => Product::TRASH_RETENTION_DAYS]);
+            $product->forceDelete();
+
+            return true;
+        });
+    }
+
+    public function snapshot(Product $product): array
+    {
+        $product->load(['images', 'variants', 'sectors']);
+
+        return array_merge($product->attributesToArray(), [
+            'purge_at' => $product->purge_at?->toIso8601String(),
+            'images' => $product->images->map(fn ($image) => $image->only(['id', 'path', 'external_url', 'alt', 'is_primary', 'product_variant_id', 'sort_order']))->all(),
+            'variants' => $product->variants->map(fn ($variant) => $variant->only(['id', 'color', 'color_hex', 'size', 'design', 'is_available']))->all(),
+            'sectors' => $product->sectors->map(fn ($sector) => $sector->only(['id', 'name']))->all(),
+        ]);
+    }
+
+    private function uploadMetadata(array $data): array
+    {
+        $uploads = [];
+        foreach ($data as $key => $value) {
+            if ($value instanceof UploadedFile) {
+                $uploads[] = ['field' => $key, 'name' => $value->getClientOriginalName(), 'bytes' => $value->getSize(), 'mime' => $value->getMimeType()];
+            } elseif (is_array($value)) {
+                $uploads = array_merge($uploads, $this->uploadMetadata($value));
+            }
+        }
+
+        return $uploads;
     }
 }

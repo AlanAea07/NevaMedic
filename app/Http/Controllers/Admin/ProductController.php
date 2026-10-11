@@ -21,6 +21,23 @@ class ProductController extends Controller
         return view('admin.products.index', compact('products'));
     }
 
+    public function trash(Request $request): View
+    {
+        $filters = $request->validate(['q' => ['nullable', 'string', 'max:100']]);
+        $products = Product::onlyTrashed()->with(['images', 'variants'])
+            ->when($filters['q'] ?? null, fn ($query, $term) => $query->where('name', 'like', '%'.$term.'%'))
+            ->orderByDesc('deleted_at')->paginate(15)->withQueryString();
+
+        return view('admin.products.trash', compact('products'));
+    }
+
+    public function restore(Request $request, int $id, ProductService $service): RedirectResponse
+    {
+        $service->restore($id, $request->user());
+
+        return to_route('admin.products.trash')->with('status', 'Producto restaurado con sus imágenes, colores y disponibilidad anteriores.');
+    }
+
     public function create(): View
     {
         return view('admin.products.create', ['product' => new Product(['is_available' => true]), 'sectors' => Sector::orderBy('name')->get()]);
@@ -51,7 +68,7 @@ class ProductController extends Controller
     {
         $service->delete($product, $request->user());
 
-        return to_route('admin.products.index')->with('status', 'Producto archivado.');
+        return to_route('admin.products.index')->with('status', 'Producto enviado a la papelera. Puedes recuperarlo durante 14 días.');
     }
 
     public function preview(Product $product): View

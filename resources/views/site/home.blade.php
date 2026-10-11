@@ -4,7 +4,9 @@
 <section class="home-hero overflow-hidden text-white" aria-labelledby="home-title">
     <div class="page-shell py-10 text-center sm:py-12">
         <p class="text-xs font-bold uppercase tracking-[.18em] text-neva-silver sm:text-sm">NEVA MEDIC TE DA LA BIENVENIDA</p>
-        <img src="{{ asset('images/brand/emblem.png') }}" alt="Emblema Neva Medic" class="home-emblem mx-auto my-3 h-72 w-80 max-w-full object-contain sm:h-96 sm:w-[28rem]" fetchpriority="high">
+        <div class="home-emblem" role="img" aria-label="Emblema Neva Medic">
+            <img src="{{ asset('images/brand/emblem-flat-source.png') }}" alt="" aria-hidden="true" class="home-emblem-source" width="1254" height="1254" fetchpriority="high">
+        </div>
         <h1 id="home-title" class="font-display text-5xl leading-none sm:text-6xl">Elegancia y confort<br>para salvar vidas.</h1>
         <p class="mt-3 text-sm font-semibold">Uniformes clínicos, médicos e industriales</p>
         <p class="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-neva-silver">Conoce prendas profesionales para personas e instituciones. Consulta modelos, colores, tallas y precios de referencia, con atención y envíos a nivel nacional.</p>

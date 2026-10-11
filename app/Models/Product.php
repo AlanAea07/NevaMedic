@@ -7,10 +7,18 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
 class Product extends Model
 {
     use SoftDeletes;
+
+    public const TRASH_RETENTION_DAYS = 14;
+
+    public function getPurgeAtAttribute(): ?Carbon
+    {
+        return $this->deleted_at?->copy()->addDays(self::TRASH_RETENTION_DAYS);
+    }
 
     protected $fillable = ['name', 'slug', 'product_type', 'short_description', 'description', 'material', 'care_instructions', 'reference_price', 'currency', 'is_available', 'is_featured', 'is_published', 'has_variants', 'available_sizes'];
 
