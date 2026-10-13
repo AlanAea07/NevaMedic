@@ -30,7 +30,7 @@
             </div>
             <a href="{{ route('customization') }}">Personalización</a>
             <a href="{{ route('catalogs.index') }}">Catálogos PDF</a>
-            <a href="{{ route('contact') }}" class="btn-primary">Cotizar</a>
+            <a href="{{ route('customization') }}" class="btn-primary">Cotizar</a>
         </div>
     </nav>
 </header>

@@ -62,12 +62,13 @@ class ProductSizesTest extends TestCase
         $product = Product::create(['name' => 'Filipina & confort', 'slug' => 'filipina', 'short_description' => 'Prenda clínica', 'reference_price' => 450, 'is_available' => true, 'has_variants' => true, 'available_sizes' => ['M']]);
         $product->variants()->create(['color' => 'Azul', 'size' => '', 'design' => '', 'is_available' => true]);
         $base = 'https://wa.me/5218711234567?text=';
+        $link = "\nEnlace del producto: ".route('products.show', $product->slug);
         $this->get('/contacto?product=filipina&direct=1&size=M&color=Azul')
-            ->assertRedirect($base.rawurlencode('Hola, me interesa cotizar Filipina & confort, talla M, color Azul'));
+            ->assertRedirect($base.rawurlencode('Hola, me interesa cotizar Filipina & confort, talla M, color Azul'.$link));
         $this->get('/contacto?product=filipina&direct=1&size=XXL&color=Rojo&size_advice=1')
-            ->assertRedirect($base.rawurlencode('Hola, me interesa cotizar Filipina & confort. Necesito asesoría para elegir mi talla'));
+            ->assertRedirect($base.rawurlencode('Hola, me interesa cotizar Filipina & confort. Necesito asesoría para elegir mi talla'.$link));
         $this->get('/contacto?product=filipina&direct=1&size=M&size_advice=1')
-            ->assertRedirect($base.rawurlencode('Hola, me interesa cotizar Filipina & confort, talla M'));
+            ->assertRedirect($base.rawurlencode('Hola, me interesa cotizar Filipina & confort, talla M'.$link));
 
         config(['neva.whatsapp' => '']);
         $this->get('/contacto?product=filipina&direct=1&size_advice=1')->assertOk()->assertSee('Necesitas asesoría');

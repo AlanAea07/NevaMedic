@@ -46,7 +46,7 @@
             <p class="text-xs text-neva-muted">{{ $hasWhatsapp ? 'Se abrirá WhatsApp con tu selección. Puedes cotizar aunque aún no sepas tu talla o color.' : 'Consulta el canal de atención disponible para tu cotización.' }}</p>
             <p class="flex items-center gap-2 text-sm text-neva-muted"><x-ui.nav-icon name="truck" />Envíos nacionales · Personalización bajo cotización</p>
         </div>
-    </x-catalog.gallery>
+    <x-slot:details>
     @if($product->description)
         <section class="mt-10 max-w-3xl" aria-labelledby="product-description">
             <h2 id="product-description" class="mb-3 text-xl font-semibold">Detalles de la prenda</h2>
@@ -64,8 +64,10 @@
         <div>
             <h2 class="mb-3 flex items-center gap-2 font-semibold"><x-ui.nav-icon name="admin.products.index" />Hazla parte de tu equipo</h2>
             <p class="text-sm text-neva-muted">Consulta telas, bordados y acabados para tu institución.</p>
-            <a href="{{ route('customization') }}" class="mt-3 inline-block text-sm font-semibold text-neva-blue underline underline-offset-4">Conoce las opciones de personalización</a>
+            <a href="{{ route('customization', ['product' => $product->slug]) }}" :href="customizationUrl" class="mt-3 inline-block text-sm font-semibold text-neva-blue underline underline-offset-4">Personalizar esta prenda</a>
         </div>
     </section>
+    </x-slot:details>
+    </x-catalog.gallery>
 </div>
 @endsection

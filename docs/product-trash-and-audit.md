@@ -47,9 +47,16 @@ Laravel tiene programado `products:purge-trash` cada minuto, con `withoutOverlap
 * * * * * cd /ruta/NevaMedic && /ruta/php artisan schedule:run >> /ruta/NevaMedic/storage/logs/scheduler.log 2>&1
 ```
 
-En Windows/XAMPP, `scripts/run-scheduler.ps1` ejecuta el scheduler en segundo plano y sin ventana. Se puede registrar en el Programador de tareas para ejecutarlo cada minuto. La tarea local requiere que Windows esté encendido y que la cuenta configurada tenga una sesión iniciada; en producción se necesita una tarea de servicio o cron que no dependa de una sesión interactiva.
+En Windows/XAMPP, configurar la acción del Programador de tareas con el lanzador oculto:
 
-En este equipo quedó registrada y habilitada la tarea `NevaMedic-Laravel-Scheduler`, con repetición cada minuto y sin elevar privilegios. Se verificó una ejecución con `LastTaskResult = 0`. Esta configuración pertenece a Windows y no se transfiere al desplegar el repositorio en otro servidor.
+- Programa: `C:\Windows\System32\wscript.exe`.
+- Argumentos: `//B //NoLogo "C:\xampp\htdocs\NevaMedic\scripts\run-scheduler-hidden.vbs"`.
+- Iniciar en: `C:\xampp\htdocs\NevaMedic`.
+- Repetición: cada minuto; no iniciar otra instancia si la anterior sigue ejecutándose.
+
+El lanzador usa `WScript.Shell.Run` con estilo `0` para crear la consola de PHP oculta desde el inicio; los procesos hijos de Laravel la heredan. Espera a que termine PHP y devuelve su código de salida al Programador. `//B` evita diálogos de Windows Script Host. No usar `powershell.exe -WindowStyle Hidden` como acción: Windows puede abrir Terminal antes de que PowerShell oculte su consola. Tampoco basta `php-win.exe` directamente: el proceso hijo del scheduler puede crear otra consola. `scripts/run-scheduler.ps1` queda como ayudante manual desde una consola existente. La tarea local requiere que Windows esté encendido y que la cuenta configurada tenga una sesión iniciada; en producción se necesita una tarea de servicio o cron que no dependa de una sesión interactiva.
+
+La tarea local se llama `NevaMedic-Laravel-Scheduler`, con repetición cada minuto y sin elevar privilegios. La ejecución oculta no muestra errores en pantalla: revisar `storage/logs/laravel.log` y `LastTaskResult` en el Programador de tareas. MySQL debe estar iniciado para que funcionen los bloqueos y la limpieza; si está apagado, Laravel devuelve un error de conexión. Esta configuración pertenece a Windows y no se transfiere al desplegar el repositorio en otro servidor.
 
 Para una ejecución manual de mantenimiento (elimina definitivamente productos ya vencidos):
 

@@ -28,6 +28,13 @@ export default (images, options = {}) => ({
         if (this.sizeAdvice) url.searchParams.set('size_advice', '1');
         return url.href;
     },
+    get customizationUrl() {
+        const url = new URL(options.customizationUrl, window.location.origin);
+        if (this.size) url.searchParams.set('size', this.size);
+        if (this.colorName) url.searchParams.set('color', this.colorName);
+        if (this.sizeAdvice) url.searchParams.set('size_advice', '1');
+        return url.href;
+    },
     get selectionSummary() {
         return [this.size ? `Talla ${this.size}` : null, this.colorName, this.sizeAdvice ? 'Necesito asesoría de talla' : null].filter(Boolean).join(' · ');
     },
